@@ -41,7 +41,7 @@ from tkinter import messagebox
 # 現在のスクリプトのディレクトリをパスに追加
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from topstepx_client import TopstepXClient
+from topstepx_client import TopstepXClient, is_live_account
 from notion_client import NotionRoundtripClient, load_credentials
 from roundtrip_transformer import RoundtripTransformer
 
@@ -1271,13 +1271,21 @@ class SyncApp(ctk.CTk):
                 account_id = account.get('id')
                 account_name = account.get('name')
                 
-                self.after(0, lambda n=account_name, idx=i: 
-                    self.log(f"[{idx+1}/{len(accounts)}] {n}")
+                # LIVE口座の場合はインジケーターを表示
+                is_live = is_live_account(account_name)
+                account_label = f"[{i+1}/{len(accounts)}] {account_name}"
+                if is_live:
+                    account_label += " [LIVE]"
+
+                self.after(0, lambda lbl=account_label:
+                    self.log(lbl)
                 )
-                
+
                 try:
-                    trades = self.topstepx.get_trades(
+                    # LIVE口座（TOPX）は自動的にOrder/searchを使用
+                    trades = self.topstepx.get_trade_data(
                         account_id=account_id,
+                        account_name=account_name,
                         start_date=start_date,
                         end_date=end_date
                     )
